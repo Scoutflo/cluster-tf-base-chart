@@ -1,13 +1,11 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = var.region
 }
 
 data "aws_availability_zones" "available" {
   filter {
     name = "opt-in-status"
-    values = [
-    "opt-in-not-required"]
-
+    values = ["opt-in-not-required"]
   }
 }
 
@@ -29,13 +27,13 @@ resource "aws_eks_addon" "ebs-csi" {
   addon_version            = "v1.39.0-eksbuild.1"
   resolve_conflicts        = "OVERWRITE"
   service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
-  tags = { eks_addon = "ebs-csi"
+  tags = {
+    eks_addon = "ebs-csi"
     terraform = "true"
-  scoutflo-terraform = "true" }
+    scoutflo-terraform = "true"
+  }
 
-  depends_on = [
-  module.eks]
-
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "kube-proxy" {
@@ -43,13 +41,13 @@ resource "aws_eks_addon" "kube-proxy" {
   addon_name        = "kube-proxy"
   addon_version     = "v1.31.3-eksbuild.2"
   resolve_conflicts = "OVERWRITE"
-  tags = { eks_addon = "kube-proxy"
+  tags = {
+    eks_addon = "kube-proxy"
     terraform = "true"
-  scoutflo-terraform = "true" }
+    scoutflo-terraform = "true"
+  }
 
-  depends_on = [
-  module.eks]
-
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "vpc-cni" {
@@ -57,13 +55,13 @@ resource "aws_eks_addon" "vpc-cni" {
   addon_name        = "vpc-cni"
   addon_version     = "v1.19.2-eksbuild.1"
   resolve_conflicts = "OVERWRITE"
-  tags = { eks_addon = "vpc-cni"
+  tags = {
+    eks_addon = "vpc-cni"
     terraform = "true"
-  scoutflo-terraform = "true" }
+    scoutflo-terraform = "true"
+  }
 
-  depends_on = [
-  module.eks]
-
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "coredns" {
@@ -71,18 +69,18 @@ resource "aws_eks_addon" "coredns" {
   addon_name        = "coredns"
   addon_version     = "v1.11.4-eksbuild.2"
   resolve_conflicts = "OVERWRITE"
-  tags = { eks_addon = "coredns"
+  tags = {
+    eks_addon = "coredns"
     terraform = "true"
-  scoutflo-terraform = "true" }
+    scoutflo-terraform = "true"
+  }
 
-  depends_on = [
-  module.eks]
-
+  depends_on = [module.eks]
 }
 
 resource "aws_ec2_tag" "tag_subnet0_cluster" {
   resource_id = "subnet-0292076ffac71c626"
-  key         = "kubernetes.io/cluster/upgrade"
+  key         = "kubernetes.io/cluster/${var.cluster_name}"
   value       = "shared"
 }
 
@@ -94,7 +92,7 @@ resource "aws_ec2_tag" "tag_subnet0_elb" {
 
 resource "aws_ec2_tag" "tag_subnet1_cluster" {
   resource_id = "subnet-0f54f7f1051b8404e"
-  key         = "kubernetes.io/cluster/upgrade"
+  key         = "kubernetes.io/cluster/${var.cluster_name}"
   value       = "shared"
 }
 
@@ -106,7 +104,7 @@ resource "aws_ec2_tag" "tag_subnet1_elb" {
 
 resource "aws_ec2_tag" "tag_subnet2_cluster" {
   resource_id = "subnet-0fccf4f22702bdebd"
-  key         = "kubernetes.io/cluster/upgrade"
+  key         = "kubernetes.io/cluster/${var.cluster_name}"
   value       = "shared"
 }
 
@@ -119,30 +117,36 @@ resource "aws_ec2_tag" "tag_subnet2_elb" {
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
   version         = "19.5.1"
-  cluster_name    = "upgrade"
+  cluster_name    = var.cluster_name
   cluster_version = "1.32"
   vpc_id          = "vpc-055cd949cc1ca7ffe"
   subnet_ids = [
     "subnet-0292076ffac71c626",
     "subnet-0f54f7f1051b8404e",
-  "subnet-0fccf4f22702bdebd"]
+    "subnet-0fccf4f22702bdebd"
+  ]
 
   cluster_endpoint_public_access = true
-  eks_managed_node_group_defaults = { ami_type = "AL2_x86_64"
-  name_prefix = "eks-nodegroup-" }
-
-  eks_managed_node_groups = { one = { name = "one"
-    instance_types = [
-    "t3.xlarge"]
-
-    min_size     = 1
-    max_size     = 5
-    desired_size = 3
-    capacity_type = "ON_DEMAND" }
+  
+  eks_managed_node_group_defaults = {
+    ami_type = "AL2_x86_64"
+    name_prefix = "eks-nodegroup-"
   }
 
-  tags = { scoutflo-terraform = "true" }
+  eks_managed_node_groups = {
+    one = {
+      name = "one"
+      instance_types = [var.instance_type]
+      min_size     = var.min_size
+      max_size     = var.max_size
+      desired_size = var.desired_size
+      capacity_type = "ON_DEMAND"
+    }
+  }
 
+  tags = {
+    scoutflo-terraform = "true"
+  }
 }
 
 module "irsa-ebs-csi" {
@@ -152,11 +156,14 @@ module "irsa-ebs-csi" {
   role_name    = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
   provider_url = module.eks.oidc_provider
   role_policy_arns = [
-  data.aws_iam_policy.ebs_csi_policy.arn]
+    data.aws_iam_policy.ebs_csi_policy.arn
+  ]
 
   oidc_fully_qualified_subjects = [
-  "system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+    "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+  ]
 
-  tags = { scoutflo-terraform = "true" }
-
+  tags = {
+    scoutflo-terraform = "true"
+  }
 }
