@@ -10,13 +10,13 @@ variable "region" {
 variable "cluster_name" {
   description = "Cluster name"
   type = string
-  default = "ingresstesting-1"
+  default = "scoutflo-cluster"
 }
 
 variable "instance_type" {
   description = "Instance Type"
   type = string
-  default = "t3a.large"
+  default = "t3.large"
 }
 
 variable "min_size" {
