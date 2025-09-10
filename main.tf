@@ -21,7 +21,7 @@ module "vpc" {
   version = "3.19.0"
   name    = "scoutflo-vpc-${random_string.suffix.result}"
   cidr    = "10.0.0.0/16"
-  azs     = slice(data.aws_availability_zones.available.names, 0, 3)
+  azs     = slice(data.aws_availability_zones.available.names, 0, min(3, length(data.aws_availability_zones.available.names)))
   public_subnets = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_dns_hostnames = true
   public_subnet_tags = {
