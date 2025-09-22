@@ -41,6 +41,10 @@ module "vpc" {
     min(3, length(data.aws_availability_zones.available.names))
   )
 
+ # CRITICAL: Enable NAT Gateway for private subnet internet access
+  enable_nat_gateway = true
+  single_nat_gateway = true  # Use single NAT for cost savings, or set to false for HA
+
   enable_dns_hostnames = true
 
   public_subnet_tags = {
