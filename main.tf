@@ -41,9 +41,8 @@ module "vpc" {
     min(3, length(data.aws_availability_zones.available.names))
   )
 
- # CRITICAL: Enable NAT Gateway for private subnet internet access
   enable_nat_gateway = true
-  single_nat_gateway = true  # Use single NAT for cost savings, or set to false for HA
+  single_nat_gateway = true
 
   enable_dns_hostnames = true
 
@@ -77,7 +76,15 @@ module "eks" {
   eks_managed_node_group_defaults = {
     ami_type    = "AL2_x86_64"
     name_prefix = "eks-nodegroup-"
-  }
+    block_device_mappings = [
+      {
+        device_name = "/dev/xvda"
+        ebs = {
+          encrypted = true
+        }
+      }
+    ]
+}
 
   eks_managed_node_groups = {
     one = {
