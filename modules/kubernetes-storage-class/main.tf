@@ -6,13 +6,14 @@ resource "kubernetes_storage_class" "this" {
     }
   }
 
-  storage_provisioner = "ebs.csi.aws.com" # Correct argument name
-  volume_binding_mode = "WaitForFirstConsumer"
-  reclaim_policy      = "Delete"
+  storage_provisioner    = "ebs.csi.aws.com"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  reclaim_policy         = "Delete"
+  allow_volume_expansion = true
 
   parameters = {
-    type   = "gp3"
-    fsType = "ext4"
+    type      = "gp3"
+    encrypted = "true"  # ✅ Enable encryption
+    fsType    = "ext4"
   }
-
 }
